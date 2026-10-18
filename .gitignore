@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 编辑器与 IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件与备份
+*.bak
+*.tmp
+*.log
+*.orig
+*.rej
+~$*
+
+# 技能按默认约定生成的产出目录（避免误提交）
+/translation-cards/

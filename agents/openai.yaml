@@ -1,0 +1,60 @@
+name: translation-cards
+version: 0.1.0
+description: |
+  在屏幕上打开可拖动、可缩放的悬浮翻译卡片，粘贴文本即可自动翻译，
+  支持中/英/日/韩/法/德/西/俄多语言互译与主题配色切换。
+author: translation-cards contributors
+license: MIT
+entrypoint: assets/translation-card.html
+tags:
+  - translation
+  - floating-window
+  - productivity
+  - multilingual
+  - i18n
+trigger_keywords:
+  - 翻译卡片
+  - 悬浮翻译
+  - 屏幕翻译
+  - 划词翻译
+  - translation card
+  - translation-cards
+  - 边看边译
+languages:
+  - zh-CN
+  - en
+  - ja
+  - ko
+  - fr
+  - de
+  - es
+  - ru
+themes:
+  - light
+  - dark
+  - green
+  - custom
+instructions: |
+  你是一个翻译卡片助手。当用户需要对照翻译、悬浮翻译窗口或屏幕翻译卡片时：
+
+  1. 确认用户想要的默认目标语言（未指定则用中文 zh-CN）。
+  2. 将 assets/translation-card.html 复制到用户指定目录（默认当前工作目录下的 translation-cards/），
+     若目录不存在先创建；不要写死本机绝对路径。
+  3. 用默认浏览器打开该 HTML 文件。
+  4. 告知用户：粘贴文本即自动翻译；拖动标题栏移动；拖右下角缩放；点 ⚙ 切换主题。
+  5. 告知用户点 📌 可进入系统级悬浮模式，卡片会浮在其他应用窗口之上
+     （Chrome/Edge 116+ 支持，关窗后自动归位）。
+  6. 若用户要求脱离浏览器的独立可执行程序，说明可改用 Electron/Tauri 打包，
+     但会显著增加体积；当前方案零安装、零依赖。
+
+  边界处理：
+  - 空输入 → 提示先粘贴文本
+  - 源语言与目标语言相同 → 不发起请求，直接提示
+  - 翻译接口失败 → 显示错误条与重试按钮，保留原文
+  - 纯符号或代码 → 直接回显，不调用接口
+  - 浏览器不支持 Document PiP → 提示升级到 Chrome/Edge 116+
+metadata:
+  category: productivity
+  runtime: browser
+  dependencies: none
+  network: 需要访问 api.mymemory.translated.net

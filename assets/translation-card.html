@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>翻译卡片 · Translation Cards</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#1f2328; --sub:#6b7280; --line:#e5e7eb;
+    --head:#f3f4f6; --accent:#2563eb; --err:#dc2626; --shadow:0 12px 40px rgba(0,0,0,.18);
+  }
+  body[data-theme="dark"]{
+    --bg:#1f2430; --fg:#e6e9ef; --sub:#9aa4b2; --line:#333a48;
+    --head:#2a3140; --accent:#60a5fa; --err:#f87171; --shadow:0 12px 40px rgba(0,0,0,.55);
+  }
+  body[data-theme="green"]{
+    --bg:#e8f5e9; --fg:#1b3b22; --sub:#4b6b52; --line:#c8e6c9;
+    --head:#c8e6c9; --accent:#2e7d32; --err:#c62828; --shadow:0 12px 40px rgba(27,59,34,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  body{background:linear-gradient(135deg,#f8fafc,#eef2f7);color:#111}
+  body[data-theme="dark"]{background:linear-gradient(135deg,#0f1218,#1a1f29)}
+  body[data-theme="green"]{background:linear-gradient(135deg,#f1f8f2,#dcefdd)}
+
+  .card{
+    position:fixed; left:80px; top:80px; width:460px; height:360px;
+    min-width:320px; min-height:220px;
+    background:var(--bg); color:var(--fg);
+    border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; overflow:hidden; z-index:2147483647;
+  }
+  .head{
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    background:var(--head); border-bottom:1px solid var(--line);
+    cursor:move; user-select:none; flex:0 0 auto;
+  }
+  .head .title{font-weight:600; font-size:13px; flex:1}
+  .head button{
+    border:none; background:transparent; color:var(--sub); font-size:15px;
+    cursor:pointer; padding:2px 6px; border-radius:6px; line-height:1;
+  }
+  .head button:hover{background:rgba(127,127,127,.18); color:var(--fg)}
+
+  .body{flex:1; display:flex; flex-direction:column; padding:10px; gap:8px; overflow:hidden}
+  textarea{
+    width:100%; flex:1 1 40%; min-height:60px; resize:none;
+    padding:8px; font-size:13px; line-height:1.5;
+    background:var(--bg); color:var(--fg);
+    border:1px solid var(--line); border-radius:8px; outline:none;
+    font-family:inherit;
+  }
+  textarea:focus{border-color:var(--accent)}
+  .row{display:flex; gap:6px; align-items:center; flex:0 0 auto}
+  select, .btn{
+    font-size:12px; padding:5px 8px; border-radius:7px;
+    border:1px solid var(--line); background:var(--bg); color:var(--fg);
+    cursor:pointer; font-family:inherit;
+  }
+  .btn.primary{background:var(--accent); color:#fff; border-color:transparent; font-weight:600}
+  .btn:hover{filter:brightness(1.06)}
+  .out{
+    flex:1 1 50%; overflow:auto; padding:8px; font-size:13px; line-height:1.6;
+    background:color-mix(in srgb, var(--head) 55%, var(--bg));
+    border:1px solid var(--line); border-radius:8px; white-space:pre-wrap;
+  }
+  .hint{color:var(--sub); font-size:12px}
+  /* 悬浮窗（Document PiP）内的布局：卡片铺满整个小窗 */
+  body.pip-body{margin:0; padding:0; overflow:hidden; background:var(--bg)}
+  body.pip-body .card{
+    position:relative; left:0 !important; top:0 !important;
+    width:100% !important; height:100% !important;
+    border-radius:0; box-shadow:none; border:none;
+  }
+  .err{color:var(--err); font-size:12px; display:none; align-items:center; gap:8px}
+  .err.show{display:flex}
+  .err .btn{padding:3px 8px; font-size:11px}
+
+  .settings{
+    display:none; gap:6px; flex-wrap:wrap; padding:8px;
+    border:1px dashed var(--line); border-radius:8px; flex:0 0 auto;
+  }
+  .settings.show{display:flex}
+  .swatch{
+    width:24px; height:24px; border-radius:6px; cursor:pointer;
+    border:2px solid var(--line);
+  }
+  .swatch.active{outline:2px solid var(--accent); outline-offset:1px}
+
+  .resize{
+    position:absolute; right:0; bottom:0; width:16px; height:16px;
+    cursor:nwse-resize;
+    background:linear-gradient(135deg, transparent 50%, var(--sub) 50%, var(--sub) 62%, transparent 62%, transparent 72%, var(--sub) 72%, var(--sub) 84%, transparent 84%);
+  }
+  .backdrop{position:fixed; inset:0; pointer-events:none}
+</style>
+</head>
+<body data-theme="light">
+<div class="backdrop"></div>
+
+<div class="card" id="card">
+  <div class="head" id="head">
+    <span>🌐</span>
+    <span class="title">翻译卡片</span>
+    <button id="btnFloat" title="悬浮到最上层（盖住其他窗口）">📌</button>
+    <button id="btnSettings" title="主题设置">⚙</button>
+    <button id="btnPin" title="重置位置">⌂</button>
+  </div>
+
+  <div class="body">
+    <div class="settings" id="settings">
+      <span class="hint">主题：</span>
+      <div class="swatch active" data-theme="light" style="background:#ffffff" title="浅色"></div>
+      <div class="swatch" data-theme="dark" style="background:#1f2430" title="深色"></div>
+      <div class="swatch" data-theme="green" style="background:#e8f5e9" title="护眼绿"></div>
+      <span class="hint">自定义：</span>
+      <input type="color" id="customBg" value="#ffffff" title="自定义背景色">
+    </div>
+
+    <textarea id="src" placeholder="把要翻译的内容粘贴到这里（Ctrl+V），或点「粘贴并翻译」"></textarea>
+
+    <div class="row">
+      <button class="btn primary" id="btnTranslate">粘贴并翻译</button>
+      <select id="target">
+        <option value="zh-CN">中文</option>
+        <option value="en">英语</option>
+        <option value="ja">日语</option>
+        <option value="ko">韩语</option>
+        <option value="fr">法语</option>
+        <option value="de">德语</option>
+        <option value="es">西班牙语</option>
+        <option value="ru">俄语</option>
+      </select>
+      <button class="btn" id="btnClear">清空</button>
+    </div>
+
+    <div class="err" id="err">
+      <span id="errMsg">翻译失败</span>
+      <button class="btn" id="btnRetry">重试</button>
+    </div>
+
+    <div class="out" id="out"><span class="hint">译文会显示在这里</span></div>
+  </div>
+
+  <div class="resize" id="resize"></div>
+</div>
+
+<script>
+(function(){
+  const card = document.getElementById('card');
+  const head = document.getElementById('head');
+  const resize = document.getElementById('resize');
+  const src = document.getElementById('src');
+  const out = document.getElementById('out');
+  const target = document.getElementById('target');
+  const err = document.getElementById('err');
+  const errMsg = document.getElementById('errMsg');
+  const settings = document.getElementById('settings');
+
+  /* ---------- 主题 ---------- */
+  const THEMES = ['light','dark','green'];
+  function applyTheme(t){
+    if (THEMES.includes(t)) {
+      document.body.dataset.theme = t;
+    } else {
+      // 自定义颜色：直接改 CSS 变量
+      document.body.dataset.theme = 'light';
+      document.documentElement.style.setProperty('--bg', t);
+    }
+    document.querySelectorAll('.swatch').forEach(s =>
+      s.classList.toggle('active', s.dataset.theme === t));
+    localStorage.setItem('tc-theme', t);
+  }
+  const savedTheme = localStorage.getItem('tc-theme') || 'light';
+  applyTheme(savedTheme);
+
+  document.querySelectorAll('.swatch').forEach(s => {
+    s.addEventListener('click', () => applyTheme(s.dataset.theme));
+  });
+  document.getElementById('customBg').addEventListener('input', e => applyTheme(e.target.value));
+
+  document.getElementById('btnSettings').addEventListener('click', () => {
+    settings.classList.toggle('show');
+  });
+
+  /* ---------- 拖动 ---------- */
+  let dragging = false, ox = 0, oy = 0;
+  head.addEventListener('mousedown', e => {
+    if (e.target.tagName === 'BUTTON') return;
+    dragging = true;
+    const r = card.getBoundingClientRect();
+    ox = e.clientX - r.left;
+    oy = e.clientY - r.top;
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    let x = e.clientX - ox, y = e.clientY - oy;
+    x = Math.max(0, Math.min(x, innerWidth - card.offsetWidth));
+    y = Math.max(0, Math.min(y, innerHeight - card.offsetHeight));
+    card.style.left = x + 'px';
+    card.style.top = y + 'px';
+  });
+  window.addEventListener('mouseup', () => dragging = false);
+
+  /* ---------- 缩放 ---------- */
+  let resizing = false, sw = 0, sh = 0, sx = 0, sy = 0;
+  resize.addEventListener('mousedown', e => {
+    resizing = true;
+    sw = card.offsetWidth; sh = card.offsetHeight;
+    sx = e.clientX; sy = e.clientY;
+    e.preventDefault(); e.stopPropagation();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!resizing) return;
+    const w = Math.max(320, sw + (e.clientX - sx));
+    const h = Math.max(220, sh + (e.clientY - sy));
+    card.style.width = w + 'px';
+    card.style.height = h + 'px';
+  });
+  window.addEventListener('mouseup', () => resizing = false);
+
+  document.getElementById('btnPin').addEventListener('click', () => {
+    card.style.left = '80px'; card.style.top = '80px';
+    card.style.width = '460px'; card.style.height = '360px';
+  });
+
+  /* ---------- 翻译 ---------- */
+  const LANG_NAMES = {'zh-CN':'中文','en':'英语','ja':'日语','ko':'韩语','fr':'法语','de':'德语','es':'西班牙语','ru':'俄语'};
+
+  function detectLang(text){
+    // 先判假名/谚文，再判汉字：日语里大量汉字，顺序反了会被误判成中文
+    if (/[\u3040-\u30ff]/.test(text)) return 'ja';
+    if (/[\uac00-\ud7af\u1100-\u11ff]/.test(text)) return 'ko';
+    if (/[\u0400-\u04ff]/.test(text)) return 'ru';
+    if (/[\u0600-\u06ff]/.test(text)) return 'ar';
+    if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN';
+    return 'en';
+  }
+
+  function showErr(msg){
+    errMsg.textContent = msg;
+    err.classList.add('show');
+  }
+  function hideErr(){ err.classList.remove('show'); }
+
+  function splitSentences(text, max){
+    const parts = [];
+    let buf = '';
+    const segs = text.split(/(?<=[。！？.!?\n])/);
+    for (const s of segs){
+      if ((buf + s).length > max && buf) { parts.push(buf); buf = s; }
+      else buf += s;
+    }
+    if (buf) parts.push(buf);
+    return parts;
+  }
+
+  async function translateChunk(text, from, to){
+    const url = 'https://api.mymemory.translated.net/get?q='
+      + encodeURIComponent(text) + '&langpair=' + encodeURIComponent(from + '|' + to);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.responseStatus && String(data.responseStatus) !== '200') {
+      throw new Error(data.responseDetails || '接口返回异常');
+    }
+    const t = data.responseData && data.responseData.translatedText;
+    if (!t) throw new Error('未获得译文');
+    return t;
+  }
+
+  async function doTranslate(){
+    const text = src.value.trim();
+    if (!text) { out.innerHTML = '<span class="hint">请先粘贴要翻译的文本</span>'; return; }
+
+    // 纯符号/代码直接回显
+    if (!/[a-zA-Z\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff]/.test(text)) {
+      out.textContent = text; return;
+    }
+
+    const from = detectLang(text);
+    const to = target.value;
+    if (from === to) {
+      out.innerHTML = '<span class="hint">源语言与目标语言相同（' + LANG_NAMES[to] + '），无需翻译</span>';
+      return;
+    }
+
+    hideErr();
+    out.innerHTML = '<span class="hint">翻译中…</span>';
+    try {
+      // MyMemory 单次请求上限约 500 字节；中文/日文每字 3 字节，需切得更短
+      const isCJK = /[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/.test(text);
+      const chunks = splitSentences(text, isCJK ? 150 : 400);
+      const results = [];
+      for (const c of chunks) results.push(await translateChunk(c, from, to));
+      out.textContent = results.join('');
+    } catch (e) {
+      out.innerHTML = '<span class="hint">—</span>';
+      showErr('翻译失败：' + e.message);
+    }
+  }
+
+  document.getElementById('btnTranslate').addEventListener('click', async () => {
+    try {
+      // 剪贴板权限弹窗可能一直挂起，最多等 400ms 就继续，避免按钮"点了没反应"
+      const t = await Promise.race([
+        navigator.clipboard.readText(),
+        new Promise(r => setTimeout(() => r(''), 400))
+      ]);
+      if (t) src.value = t;
+    } catch (_) { /* 浏览器不允许读剪贴板时忽略 */ }
+    doTranslate();
+  });
+
+  document.getElementById('btnRetry').addEventListener('click', doTranslate);
+  document.getElementById('btnClear').addEventListener('click', () => {
+    src.value = ''; out.innerHTML = '<span class="hint">译文会显示在这里</span>'; hideErr();
+  });
+
+  src.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); doTranslate(); }
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') settings.classList.remove('show');
+  });
+
+  /* ---------- 系统级悬浮窗（Document Picture-in-Picture） ---------- */
+  // 让卡片能浮在浏览器之外、盖住其他应用窗口。Chrome/Edge 116+ 支持。
+  let pipWin = null;
+  const btnFloat = document.getElementById('btnFloat');
+
+  async function toggleFloat(){
+    if (!('documentPictureInPicture' in window)) {
+      showErr('当前浏览器不支持悬浮窗，请用 Chrome/Edge 116 及以上版本打开');
+      return;
+    }
+    if (pipWin) { pipWin.close(); return; }
+    try {
+      const w = await documentPictureInPicture.requestWindow({
+        width: Math.max(380, card.offsetWidth),
+        height: Math.max(280, card.offsetHeight)
+      });
+      // 把样式与主题一并复制过去，保证外观一致
+      document.querySelectorAll('style, link[rel="stylesheet"]').forEach(n => {
+        w.document.head.appendChild(n.cloneNode(true));
+      });
+      w.document.documentElement.style.cssText = document.documentElement.style.cssText;
+      w.document.body.dataset.theme = document.body.dataset.theme || 'light';
+      w.document.title = '翻译卡片 · 悬浮';
+      w.document.body.classList.add('pip-body');
+
+      w.document.body.appendChild(card);   // 同一 JS 上下文，事件监听全部保留
+      pipWin = w;
+      btnFloat.title = '取消悬浮（回到页面）';
+
+      w.addEventListener('pagehide', () => {
+        document.body.appendChild(card);   // 关窗时把卡片搬回原页面
+        pipWin = null;
+        btnFloat.title = '悬浮到最上层（盖住其他窗口）';
+      });
+    } catch (e) {
+      showErr('悬浮窗打开失败：' + e.message);
+    }
+  }
+  btnFloat.addEventListener('click', toggleFloat);
+
+  // 粘贴后自动翻译
+  src.addEventListener('paste', () => setTimeout(doTranslate, 60));
+})();
+</script>
+</body>
+</html>
