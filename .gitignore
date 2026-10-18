@@ -24,5 +24,10 @@ desktop.ini
 *.rej
 ~$*
 
+# 本地配置与依赖（可能含密钥，禁止提交）
+.env
+.env.*
+node_modules/
+
 # 技能按默认约定生成的产出目录（避免误提交）
 /translation-cards/
