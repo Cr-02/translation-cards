@@ -8,9 +8,10 @@
     1. SKILL.md 存在且含合法 YAML frontmatter
     2. frontmatter 含 name / description，name 与目录名一致
     3. description 长度足够（触发可靠性）
-    4. agents/openai.yaml 存在且可被 YAML 解析
+    4. agents/openai.yaml 存在且可被 YAML 解析，version 为 x.y.z
     5. README.md 存在且非空
     6. assets/translation-card.html 存在且含关键结构
+    7. tests/ 下存在 core.test.mjs 与 structure.test.mjs
 
 退出码: 0 全部通过; 1 存在错误
 """
@@ -101,13 +102,20 @@ def check(skill_dir: Path) -> list[str]:
     yaml_file = skill_dir / "agents" / "openai.yaml"
     if not yaml_file.is_file():
         errors.append("缺少 agents/openai.yaml")
-    elif yaml is not None:
-        try:
-            data = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
-            if not isinstance(data, dict) or not data.get("name"):
-                errors.append("agents/openai.yaml 缺少 name 字段")
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"agents/openai.yaml 解析失败: {exc}")
+    else:
+        yaml_text = yaml_file.read_text(encoding="utf-8")
+        m_ver = re.search(r"^version:\s*(\S+)\s*$", yaml_text, re.M)
+        if not m_ver:
+            errors.append("agents/openai.yaml 缺少 version 字段")
+        elif not re.fullmatch(r"\d+\.\d+\.\d+", m_ver.group(1)):
+            errors.append(f"agents/openai.yaml 的 version '{m_ver.group(1)}' 不是 x.y.z 语义化版本")
+        if yaml is not None:
+            try:
+                data = yaml.safe_load(yaml_text)
+                if not isinstance(data, dict) or not data.get("name"):
+                    errors.append("agents/openai.yaml 缺少 name 字段")
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"agents/openai.yaml 解析失败: {exc}")
 
     readme = skill_dir / "README.md"
     if not readme.is_file():
@@ -120,9 +128,31 @@ def check(skill_dir: Path) -> list[str]:
         errors.append("缺少 assets/translation-card.html")
     else:
         h = html.read_text(encoding="utf-8")
-        for token in ("id=\"card\"", "id=\"resize\"", "data-theme"):
+        required_tokens = (
+            'id="card"',
+            'id="resize"',
+            'id="style"',
+            'id="autoOn"',
+            'id="btnApplyTheme"',
+            'id="btnResetTheme"',
+            'data-theme',
+            'data-grad',
+            '@core-begin',
+            '@core-end',
+            'AbortController',
+            'documentPictureInPicture',
+            'api.mymemory.translated.net',
+        )
+        for token in required_tokens:
             if token not in h:
                 errors.append(f"translation-card.html 缺少关键结构: {token}")
+        if h.count('fetch(') != 1:
+            errors.append(f"translation-card.html 应只有 1 处 fetch（发现 {h.count('fetch(')} 处）")
+
+    tests_dir = skill_dir / "tests"
+    for name in ("core.test.mjs", "structure.test.mjs"):
+        if not (tests_dir / name).is_file():
+            errors.append(f"缺少 tests/{name}")
 
     return errors
 
@@ -141,7 +171,7 @@ def main() -> int:
             print(f"  - {e}")
         return 1
 
-    print("\n[OK] 全部通过: SKILL.md / openai.yaml / README.md / assets 均符合规范")
+    print("\n[OK] 全部通过: SKILL.md / openai.yaml / README.md / assets / tests 均符合规范")
     return 0
 
 

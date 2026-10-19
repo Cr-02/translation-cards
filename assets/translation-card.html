@@ -5,22 +5,23 @@
 <title>翻译卡片 · Translation Cards</title>
 <style>
   :root{
-    --bg:#ffffff; --fg:#1f2328; --sub:#6b7280; --line:#e5e7eb;
+    --bg:#ffffff; --surface:#f9fafb; --fg:#1f2328; --sub:#6b7280; --line:#e5e7eb;
     --head:#f3f4f6; --accent:#2563eb; --err:#dc2626; --shadow:0 12px 40px rgba(0,0,0,.18);
+    --page-bg:linear-gradient(135deg,#f8fafc,#eef2f7);
   }
   body[data-theme="dark"]{
-    --bg:#1f2430; --fg:#e6e9ef; --sub:#9aa4b2; --line:#333a48;
+    --bg:#1f2430; --surface:#232936; --fg:#e6e9ef; --sub:#9aa4b2; --line:#333a48;
     --head:#2a3140; --accent:#60a5fa; --err:#f87171; --shadow:0 12px 40px rgba(0,0,0,.55);
+    --page-bg:linear-gradient(135deg,#0f1218,#1a1f29);
   }
   body[data-theme="green"]{
-    --bg:#e8f5e9; --fg:#1b3b22; --sub:#4b6b52; --line:#c8e6c9;
+    --bg:#e8f5e9; --surface:#f1f8f2; --fg:#1b3b22; --sub:#4b6b52; --line:#c8e6c9;
     --head:#c8e6c9; --accent:#2e7d32; --err:#c62828; --shadow:0 12px 40px rgba(27,59,34,.22);
+    --page-bg:linear-gradient(135deg,#f1f8f2,#dcefdd);
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif}
-  body{background:linear-gradient(135deg,#f8fafc,#eef2f7);color:#111}
-  body[data-theme="dark"]{background:linear-gradient(135deg,#0f1218,#1a1f29)}
-  body[data-theme="green"]{background:linear-gradient(135deg,#f1f8f2,#dcefdd)}
+  body{background:var(--page-bg);color:#111;background-attachment:fixed}
 
   .card{
     position:fixed; left:80px; top:80px; width:460px; height:360px;
@@ -40,27 +41,32 @@
     cursor:pointer; padding:2px 6px; border-radius:6px; line-height:1;
   }
   .head button:hover{background:rgba(127,127,127,.18); color:var(--fg)}
+  .live{font-size:10px; color:var(--sub); line-height:1}
+  .live.busy{color:var(--accent)}
+  .live.done{color:#16a34a}
+  .live.error{color:var(--err)}
 
   .body{flex:1; display:flex; flex-direction:column; padding:10px; gap:8px; overflow:hidden}
   textarea{
     width:100%; flex:1 1 40%; min-height:60px; resize:none;
     padding:8px; font-size:13px; line-height:1.5;
-    background:var(--bg); color:var(--fg);
+    background:var(--surface); color:var(--fg);
     border:1px solid var(--line); border-radius:8px; outline:none;
     font-family:inherit;
   }
   textarea:focus{border-color:var(--accent)}
-  .row{display:flex; gap:6px; align-items:center; flex:0 0 auto}
+  .row{display:flex; gap:6px; align-items:center; flex:0 0 auto; flex-wrap:wrap}
   select, .btn{
     font-size:12px; padding:5px 8px; border-radius:7px;
-    border:1px solid var(--line); background:var(--bg); color:var(--fg);
+    border:1px solid var(--line); background:var(--surface); color:var(--fg);
     cursor:pointer; font-family:inherit;
   }
   .btn.primary{background:var(--accent); color:#fff; border-color:transparent; font-weight:600}
   .btn:hover{filter:brightness(1.06)}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
   .out{
     flex:1 1 50%; overflow:auto; padding:8px; font-size:13px; line-height:1.6;
-    background:color-mix(in srgb, var(--head) 55%, var(--bg));
+    background:var(--surface);
     border:1px solid var(--line); border-radius:8px; white-space:pre-wrap;
   }
   .hint{color:var(--sub); font-size:12px}
@@ -76,15 +82,29 @@
   .err .btn{padding:3px 8px; font-size:11px}
 
   .settings{
-    display:none; gap:6px; flex-wrap:wrap; padding:8px;
+    display:none; flex-direction:column; gap:6px; padding:8px;
     border:1px dashed var(--line); border-radius:8px; flex:0 0 auto;
+    background:var(--surface);
   }
   .settings.show{display:flex}
+  .settings-row{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+  .settings-row .hint{min-width:auto}
   .swatch{
     width:24px; height:24px; border-radius:6px; cursor:pointer;
     border:2px solid var(--line);
   }
   .swatch.active{outline:2px solid var(--accent); outline-offset:1px}
+  .swatch.grad{border-color:rgba(0,0,0,.12)}
+  input[type="color"]{
+    width:32px; height:26px; padding:0; border:1px solid var(--line);
+    border-radius:6px; background:var(--surface); cursor:pointer;
+  }
+  input[type="number"]{
+    width:64px; font-size:12px; padding:4px 6px; border-radius:6px;
+    border:1px solid var(--line); background:var(--surface); color:var(--fg);
+    font-family:inherit;
+  }
+  label.hint{display:inline-flex; align-items:center; gap:4px; cursor:pointer}
 
   .resize{
     position:absolute; right:0; bottom:0; width:16px; height:16px;
@@ -101,26 +121,54 @@
   <div class="head" id="head">
     <span>🌐</span>
     <span class="title">翻译卡片</span>
+    <span class="live" id="live" title="实时翻译状态：灰色=待输入，蓝色=翻译中，绿色=已更新，红色=失败">●</span>
     <button id="btnFloat" title="悬浮到最上层（盖住其他窗口）">📌</button>
-    <button id="btnSettings" title="主题设置">⚙</button>
-    <button id="btnPin" title="重置位置">⌂</button>
+    <button id="btnSettings" title="主题与实时翻译设置">⚙</button>
+    <button id="btnPin" title="重置位置与大小">⌂</button>
   </div>
 
   <div class="body">
     <div class="settings" id="settings">
-      <span class="hint">主题：</span>
-      <div class="swatch active" data-theme="light" style="background:#ffffff" title="浅色"></div>
-      <div class="swatch" data-theme="dark" style="background:#1f2430" title="深色"></div>
-      <div class="swatch" data-theme="green" style="background:#e8f5e9" title="护眼绿"></div>
-      <span class="hint">自定义：</span>
-      <input type="color" id="customBg" value="#ffffff" title="自定义背景色">
+      <div class="settings-row">
+        <span class="hint">纯色</span>
+        <div class="swatch active" data-theme="light" style="background:#ffffff" title="浅色"></div>
+        <div class="swatch" data-theme="dark" style="background:#1f2430" title="深色"></div>
+        <div class="swatch" data-theme="green" style="background:#e8f5e9" title="护眼绿"></div>
+      </div>
+      <div class="settings-row">
+        <span class="hint">渐变</span>
+        <div class="swatch grad" data-grad="sunrise" style="background:linear-gradient(135deg,#ff9a9e,#fad0c4)" title="日出"></div>
+        <div class="swatch grad" data-grad="ocean" style="background:linear-gradient(135deg,#5b8def,#64e3ff)" title="海洋"></div>
+        <div class="swatch grad" data-grad="mint" style="background:linear-gradient(135deg,#d4fc79,#96e6a1)" title="薄荷"></div>
+        <div class="swatch grad" data-grad="sunset" style="background:linear-gradient(135deg,#fa709a,#fee140)" title="日落"></div>
+        <div class="swatch grad" data-grad="violet" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb)" title="紫罗兰"></div>
+        <div class="swatch grad" data-grad="sky" style="background:linear-gradient(135deg,#e0f2fe,#bae6fd)" title="天空"></div>
+        <div class="swatch grad" data-grad="graphite" style="background:linear-gradient(135deg,#4b5563,#111827)" title="石墨（深色）"></div>
+      </div>
+      <div class="settings-row">
+        <span class="hint">自定义渐变</span>
+        <input type="color" id="gradFrom" value="#7dd3fc" title="起始色">
+        <input type="color" id="gradTo" value="#a78bfa" title="结束色">
+        <span class="hint">角度</span>
+        <input type="number" id="gradAngle" min="0" max="360" step="15" value="135" title="渐变角度（0-360）">
+        <button class="btn primary" id="btnApplyTheme">确认</button>
+        <button class="btn" id="btnResetTheme" title="放弃未确认的改动">还原</button>
+      </div>
+      <div class="settings-row">
+        <label class="hint"><input type="checkbox" id="autoOn" checked> 实时翻译（粘贴或输入后自动翻译）</label>
+        <span class="hint" id="themeState">当前：浅色</span>
+      </div>
     </div>
 
-    <textarea id="src" placeholder="把要翻译的内容粘贴到这里（Ctrl+V），或点「粘贴并翻译」"></textarea>
+    <textarea id="src" placeholder="粘贴或输入要翻译的内容，停顿后自动翻译（Ctrl+Enter 立即翻译）"></textarea>
 
     <div class="row">
-      <button class="btn primary" id="btnTranslate">粘贴并翻译</button>
-      <select id="target">
+      <select id="style" title="译文语域：标准 / 专业（书面）/ 口语">
+        <option value="neutral">标准</option>
+        <option value="formal">专业</option>
+        <option value="casual">口语</option>
+      </select>
+      <select id="target" title="目标语言">
         <option value="zh-CN">中文</option>
         <option value="en">英语</option>
         <option value="ja">日语</option>
@@ -130,6 +178,7 @@
         <option value="es">西班牙语</option>
         <option value="ru">俄语</option>
       </select>
+      <button class="btn primary" id="btnTranslate">立即翻译</button>
       <button class="btn" id="btnClear">清空</button>
     </div>
 
@@ -145,6 +194,209 @@
 </div>
 
 <script>
+/* @core-begin —— 以下是纯逻辑，不碰 DOM，tests/core.test.mjs 直接抽取这一段做单元测试 */
+const LANG_NAMES = {'zh-CN':'中文','en':'英语','ja':'日语','ko':'韩语','fr':'法语','de':'德语','es':'西班牙语','ru':'俄语','ar':'阿拉伯语'};
+const STYLE_NAMES = {neutral:'标准', formal:'专业', casual:'口语'};
+const PRESET_NAMES = {light:'浅色', dark:'深色', green:'护眼绿'};
+const GRADIENT_PRESETS = {
+  sunrise:  {from:'#ff9a9e', to:'#fad0c4', angle:135, name:'日出'},
+  ocean:    {from:'#5b8def', to:'#64e3ff', angle:135, name:'海洋'},
+  mint:     {from:'#d4fc79', to:'#96e6a1', angle:135, name:'薄荷'},
+  sunset:   {from:'#fa709a', to:'#fee140', angle:135, name:'日落'},
+  violet:   {from:'#a18cd1', to:'#fbc2eb', angle:135, name:'紫罗兰'},
+  sky:      {from:'#e0f2fe', to:'#bae6fd', angle:135, name:'天空'},
+  graphite: {from:'#4b5563', to:'#111827', angle:135, name:'石墨'}
+};
+
+function detectLang(text){
+  // 先判假名/谚文，再判汉字：日语里大量汉字，顺序反了会被误判成中文
+  if (/[\u3040-\u30ff]/.test(text)) return 'ja';
+  if (/[\uac00-\ud7af\u1100-\u11ff]/.test(text)) return 'ko';
+  if (/[\u0400-\u04ff]/.test(text)) return 'ru';
+  if (/[\u0600-\u06ff]/.test(text)) return 'ar';
+  if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN';
+  return 'en';
+}
+
+// 是否含有可翻译的文字；纯数字、纯符号、纯空白直接回显
+function isMeaningfulText(text){
+  return /[a-zA-Z\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff]/.test(text);
+}
+
+function splitSentences(text, max){
+  const parts = [];
+  let buf = '';
+  const segs = text.split(/(?<=[。！？.!?\n])/);
+  for (const s of segs){
+    if ((buf + s).length > max && buf) { parts.push(buf); buf = s; }
+    else buf += s;
+  }
+  if (buf) parts.push(buf);
+  return parts;
+}
+
+/* ---------- 语域（风格）转换：在机器译文上做书面化 / 口语化润色 ---------- */
+const STYLE_RULES = {
+  'zh-CN': {
+    formal: [
+      [/挺(?=[\u4e00-\u9fa5])/g, '较为'],
+      [/非常/g, '极为'], [/特别/g, '尤为'], [/好多/g, '大量'], [/很多/g, '大量'],
+      [/差不多/g, '大致'], [/马上/g, '立即'], [/现在/g, '目前'], [/这会儿/g, '目前'],
+      [/搞/g, '开展'], [/弄/g, '处理'], [/咱们/g, '我们'], [/咋/g, '如何'], [/啥/g, '什么'],
+      [/我觉得/g, '本文认为'], [/大概/g, '约'], [/好用/g, '易用'], [/先弄/g, '着手'],
+      [/吧(?=[。！？])/g, ''], [/呢(?=[。！？])/g, ''], [/啊(?=[。！？])/g, '']
+    ],
+    casual: [
+      [/因此/g, '所以'], [/然而/g, '不过'], [/此外/g, '另外'], [/但是/g, '不过'],
+      [/立即/g, '马上'], [/目前/g, '现在'], [/较为/g, '比较'], [/极为/g, '特别'],
+      [/尤为/g, '特别'], [/大量/g, '很多'], [/开展/g, '搞'], [/处理/g, '弄'],
+      [/我们/g, '咱们'], [/如何/g, '咋'], [/什么/g, '啥'], [/本文认为/g, '我觉得'],
+      [/易用/g, '好用'], [/显著/g, '明显'], [/已经/g, '早已'], [/着手/g, '动手'],
+      [/进行/g, '做']
+    ]
+  },
+  en: {
+    formal: [
+      [/\bdon't\b/gi, 'do not'], [/\bdoesn't\b/gi, 'does not'], [/\bdidn't\b/gi, 'did not'],
+      [/\bcan't\b/gi, 'cannot'], [/\bwon't\b/gi, 'will not'], [/\bisn't\b/gi, 'is not'],
+      [/\baren't\b/gi, 'are not'], [/\bwasn't\b/gi, 'was not'], [/\bweren't\b/gi, 'were not'],
+      [/\bit's\b/gi, 'it is'], [/\bthat's\b/gi, 'that is'], [/\bthere's\b/gi, 'there is'],
+      [/\bwe're\b/gi, 'we are'], [/\bthey're\b/gi, 'they are'], [/\byou're\b/gi, 'you are'],
+      [/\blet's\b/gi, 'let us'], [/\bI'm\b/g, 'I am'], [/\bI've\b/g, 'I have'],
+      [/\ba lot of\b/gi, 'a considerable amount of'], [/\bfind out\b/gi, 'determine'],
+      [/\blook into\b/gi, 'investigate'],
+      [/\bbought\b/gi, 'purchased'], [/\bbuys\b/gi, 'purchases'], [/\bbuying\b/gi, 'purchasing'],
+      [/\bbuy\b/gi, 'purchase'],
+      [/\bgot\b/gi, 'obtained'], [/\bgets\b/gi, 'obtains'], [/\bgetting\b/gi, 'obtaining'],
+      [/\bget\b/gi, 'obtain'],
+      [/\bhelped\b/gi, 'assisted'], [/\bhelps\b/gi, 'assists'], [/\bhelp\b/gi, 'assist'],
+      [/\bbig\b/gi, 'substantial'],
+      [/\bshowed\b/gi, 'demonstrated'], [/\bshows\b/gi, 'demonstrates'],
+      [/\bshow\b/gi, 'demonstrate'],
+      [/(^|[.!?]\s+)But\b/g, '$1However'], [/(^|[.!?]\s+)So\b/g, '$1Therefore'],
+      [/,\s*so\b/gi, ', therefore'], [/,\s*but\b/gi, ', however']
+    ],
+    casual: [
+      [/\bdo not\b/gi, "don't"], [/\bdoes not\b/gi, "doesn't"], [/\bdid not\b/gi, "didn't"],
+      [/\bcannot\b/gi, "can't"], [/\bwill not\b/gi, "won't"], [/\bis not\b/gi, "isn't"],
+      [/\bare not\b/gi, "aren't"], [/\bwas not\b/gi, "wasn't"], [/\bwere not\b/gi, "weren't"],
+      [/\bit is\b/gi, "it's"], [/\bthat is\b/gi, "that's"], [/\bthere is\b/gi, "there's"],
+      [/\bwe are\b/gi, "we're"], [/\bthey are\b/gi, "they're"], [/\byou are\b/gi, "you're"],
+      [/\blet us\b/gi, "let's"], [/\bI am\b/g, "I'm"], [/\bI have\b/g, "I've"],
+      [/\ba considerable amount of\b/gi, 'a lot of'], [/\bdetermine\b/gi, 'find out'],
+      [/\binvestigate\b/gi, 'look into'],
+      [/\bpurchased\b/gi, 'bought'], [/\bpurchases\b/gi, 'buys'], [/\bpurchasing\b/gi, 'buying'],
+      [/\bpurchase\b/gi, 'buy'],
+      [/\bobtained\b/gi, 'got'], [/\bobtains\b/gi, 'gets'], [/\bobtaining\b/gi, 'getting'],
+      [/\bobtain\b/gi, 'get'],
+      [/\bassisted\b/gi, 'helped'], [/\bassists\b/gi, 'helps'],
+      [/\bassist\b/gi, 'help'], [/\bsubstantial\b/gi, 'big'],
+      [/\bdemonstrated\b/gi, 'showed'], [/\bdemonstrates\b/gi, 'shows'],
+      [/\bdemonstrate\b/gi, 'show'],
+      [/,\s*therefore\b/gi, ', so'], [/,\s*however\b/gi, ', but'],
+      [/(^|[.!?]\s+)However\b/g, '$1But'], [/(^|[.!?]\s+)Therefore\b/g, '$1So']
+    ]
+  },
+  ja: {
+    formal: [
+      [/である/g, 'である'], [/だ(?=[。、])/g, 'である'], [/だった/g, 'であった'],
+      [/と思う/g, 'と考える'], [/すごく/g, '非常に'], [/とても/g, '非常に']
+    ],
+    casual: [
+      [/である(?=[。、])/g, 'だ'], [/であった/g, 'だった'], [/と考える/g, 'と思う'],
+      [/非常に/g, 'すごく']
+    ]
+  },
+  ko: {
+    formal: [
+      [/해요/g, '합니다'], [/이에요/g, '입니다'], [/했어요/g, '했습니다'], [/있어요/g, '있습니다']
+    ],
+    casual: [
+      [/합니다/g, '해요'], [/입니다/g, '이에요'], [/했습니다/g, '했어요'], [/있습니다/g, '있어요']
+    ]
+  }
+};
+
+function applyStyle(text, lang, style){
+  if (style !== 'formal' && style !== 'casual') return text;
+  const rules = (STYLE_RULES[lang] && STYLE_RULES[lang][style]) || [];
+  let out = text;
+  for (const rule of rules) out = out.replace(rule[0], rule[1]);
+  // 缩写展开/收缩可能把句首大写写成小写（It's → it is），这里把句首改回大写
+  out = out.replace(/(^|[.!?]\s+)([a-z])/g, (m, p, c) => p + c.toUpperCase());
+  return out;
+}
+
+/* ---------- 主题：预设 / 渐变 ---------- */
+function isHex(v){ return typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v.trim()); }
+
+function hexToRgb(hex){
+  if (!isHex(hex)) return null;
+  const n = parseInt(hex.trim().slice(1), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function relativeLuminance(rgb){
+  if (!rgb) return 1;
+  const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(rgb.r) + 0.7152 * f(rgb.g) + 0.0722 * f(rgb.b);
+}
+
+function normalizeAngle(a){
+  let n = Number(a);
+  if (!isFinite(n)) n = 135;
+  n = Math.round(n) % 360;
+  return n < 0 ? n + 360 : n;
+}
+
+function makeGradient(from, to, angle){
+  const a = normalizeAngle(angle);
+  const c1 = isHex(from) ? from.trim().toLowerCase() : '#ffffff';
+  const c2 = isHex(to) ? to.trim().toLowerCase() : '#e5e7eb';
+  return 'linear-gradient(' + a + 'deg, ' + c1 + ', ' + c2 + ')';
+}
+
+// 按两个渐变色算平均亮度，决定文字/面板用浅色还是深色
+function pickPalette(from, to){
+  const lum = (relativeLuminance(hexToRgb(from)) + relativeLuminance(hexToRgb(to))) / 2;
+  if (lum > 0.5) {
+    return { fg:'#1f2328', sub:'#4b5563', line:'rgba(0,0,0,.18)', head:'rgba(255,255,255,.65)',
+             surface:'rgba(255,255,255,.86)', accent:'#2563eb', err:'#b91c1c' };
+  }
+  return { fg:'#f2f4f8', sub:'#c3cbd8', line:'rgba(255,255,255,.30)', head:'rgba(255,255,255,.14)',
+           surface:'rgba(17,24,39,.72)', accent:'#93c5fd', err:'#fca5a5' };
+}
+
+function serializeTheme(spec){
+  if (!spec) return 'preset:light';
+  if (spec.type === 'preset') return 'preset:' + (PRESET_NAMES[spec.name] ? spec.name : 'light');
+  return 'gradient:' + (isHex(spec.from) ? spec.from.trim().toLowerCase() : '#ffffff')
+    + '|' + (isHex(spec.to) ? spec.to.trim().toLowerCase() : '#e5e7eb')
+    + '|' + normalizeAngle(spec.angle)
+    + '|' + (spec.name || 'custom');
+}
+
+function parseTheme(raw){
+  const fallback = { type:'preset', name:'light' };
+  if (!raw || typeof raw !== 'string') return fallback;
+  const s = raw.trim();
+  // 兼容 v0.1.0：直接存的是 'light' / 'dark' / 'green' / 自定义色值
+  if (PRESET_NAMES[s]) return { type:'preset', name:s };
+  if (isHex(s)) return { type:'gradient', name:'custom', from:s, to:s, angle:135 };
+  if (s.startsWith('preset:')) {
+    const name = s.slice(7);
+    return PRESET_NAMES[name] ? { type:'preset', name } : fallback;
+  }
+  if (s.startsWith('gradient:')) {
+    const [from, to, angle, name] = s.slice(9).split('|');
+    if (!isHex(from) || !isHex(to)) return fallback;
+    return { type:'gradient', name: name || 'custom', from:from.trim().toLowerCase(),
+             to:to.trim().toLowerCase(), angle:normalizeAngle(angle) };
+  }
+  return fallback;
+}
+/* @core-end */
+
 (function(){
   const card = document.getElementById('card');
   const head = document.getElementById('head');
@@ -152,34 +404,110 @@
   const src = document.getElementById('src');
   const out = document.getElementById('out');
   const target = document.getElementById('target');
+  const styleSel = document.getElementById('style');
   const err = document.getElementById('err');
   const errMsg = document.getElementById('errMsg');
   const settings = document.getElementById('settings');
+  const live = document.getElementById('live');
+  const themeState = document.getElementById('themeState');
+  const autoOn = document.getElementById('autoOn');
+  const gradFrom = document.getElementById('gradFrom');
+  const gradTo = document.getElementById('gradTo');
+  const gradAngle = document.getElementById('gradAngle');
 
-  /* ---------- 主题 ---------- */
-  const THEMES = ['light','dark','green'];
-  function applyTheme(t){
-    if (THEMES.includes(t)) {
-      document.body.dataset.theme = t;
-    } else {
-      // 自定义颜色：直接改 CSS 变量
-      document.body.dataset.theme = 'light';
-      document.documentElement.style.setProperty('--bg', t);
-    }
-    document.querySelectorAll('.swatch').forEach(s =>
-      s.classList.toggle('active', s.dataset.theme === t));
-    localStorage.setItem('tc-theme', t);
+  /* ---------- 主题（先选中，点「确认」才生效） ---------- */
+  let applied = parseTheme(localStorage.getItem('tc-theme'));
+  let pending = JSON.parse(JSON.stringify(applied));
+
+  function describe(spec){
+    if (spec.type === 'preset') return '当前：' + PRESET_NAMES[spec.name];
+    const label = GRADIENT_PRESETS[spec.name] ? GRADIENT_PRESETS[spec.name].name : '自定义';
+    return '当前：渐变 · ' + label + '（' + spec.from + ' → ' + spec.to + '，' + spec.angle + '°）';
   }
-  const savedTheme = localStorage.getItem('tc-theme') || 'light';
-  applyTheme(savedTheme);
+
+  function applyThemeSpec(spec){
+    const root = document.documentElement;
+    ['--bg','--surface','--fg','--sub','--line','--head','--accent','--err','--page-bg']
+      .forEach(v => root.style.removeProperty(v));
+    if (spec.type === 'preset') {
+      document.body.dataset.theme = spec.name;
+    } else {
+      const grad = makeGradient(spec.from, spec.to, spec.angle);
+      const p = pickPalette(spec.from, spec.to);
+      document.body.dataset.theme = 'custom';
+      root.style.setProperty('--bg', grad);
+      root.style.setProperty('--page-bg', grad);
+      root.style.setProperty('--surface', p.surface);
+      root.style.setProperty('--fg', p.fg);
+      root.style.setProperty('--sub', p.sub);
+      root.style.setProperty('--line', p.line);
+      root.style.setProperty('--head', p.head);
+      root.style.setProperty('--accent', p.accent);
+      root.style.setProperty('--err', p.err);
+    }
+    themeState.textContent = describe(spec);
+    localStorage.setItem('tc-theme', serializeTheme(spec));
+  }
+
+  function syncSwatches(spec){
+    document.querySelectorAll('.swatch').forEach(s => {
+      const on = spec.type === 'preset'
+        ? s.dataset.theme === spec.name
+        : s.dataset.grad === spec.name;
+      s.classList.toggle('active', on);
+    });
+  }
 
   document.querySelectorAll('.swatch').forEach(s => {
-    s.addEventListener('click', () => applyTheme(s.dataset.theme));
+    s.addEventListener('click', () => {
+      pending = s.dataset.theme
+        ? { type:'preset', name: s.dataset.theme }
+        : { type:'gradient', name: s.dataset.grad, ...GRADIENT_PRESETS[s.dataset.grad] };
+      if (s.dataset.grad && GRADIENT_PRESETS[s.dataset.grad]) {
+        const g = GRADIENT_PRESETS[s.dataset.grad];
+        gradFrom.value = g.from; gradTo.value = g.to; gradAngle.value = g.angle;
+      }
+      syncSwatches(pending);
+      themeState.textContent = '待确认：' + describe(pending).replace(/^当前：/, '');
+    });
   });
-  document.getElementById('customBg').addEventListener('input', e => applyTheme(e.target.value));
+
+  function readCustomGradient(){
+    pending = {
+      type:'gradient', name:'custom',
+      from: gradFrom.value, to: gradTo.value, angle: normalizeAngle(gradAngle.value)
+    };
+    syncSwatches(pending);
+    themeState.textContent = '待确认：' + describe(pending).replace(/^当前：/, '');
+  }
+  [gradFrom, gradTo, gradAngle].forEach(el => el.addEventListener('input', readCustomGradient));
+
+  document.getElementById('btnApplyTheme').addEventListener('click', () => {
+    applied = JSON.parse(JSON.stringify(pending));
+    applyThemeSpec(applied);
+    syncSwatches(applied);
+  });
+  document.getElementById('btnResetTheme').addEventListener('click', () => {
+    pending = JSON.parse(JSON.stringify(applied));
+    if (applied.type === 'gradient') {
+      gradFrom.value = applied.from; gradTo.value = applied.to; gradAngle.value = applied.angle;
+    }
+    syncSwatches(applied);
+    themeState.textContent = describe(applied);
+  });
+
+  applyThemeSpec(applied);
+  syncSwatches(applied);
 
   document.getElementById('btnSettings').addEventListener('click', () => {
     settings.classList.toggle('show');
+  });
+
+  /* ---------- 实时翻译开关 ---------- */
+  autoOn.checked = localStorage.getItem('tc-auto') !== '0';
+  autoOn.addEventListener('change', () => {
+    localStorage.setItem('tc-auto', autoOn.checked ? '1' : '0');
+    if (autoOn.checked) scheduleTranslate(150);
   });
 
   /* ---------- 拖动 ---------- */
@@ -225,40 +553,16 @@
   });
 
   /* ---------- 翻译 ---------- */
-  const LANG_NAMES = {'zh-CN':'中文','en':'英语','ja':'日语','ko':'韩语','fr':'法语','de':'德语','es':'西班牙语','ru':'俄语'};
-
-  function detectLang(text){
-    // 先判假名/谚文，再判汉字：日语里大量汉字，顺序反了会被误判成中文
-    if (/[\u3040-\u30ff]/.test(text)) return 'ja';
-    if (/[\uac00-\ud7af\u1100-\u11ff]/.test(text)) return 'ko';
-    if (/[\u0400-\u04ff]/.test(text)) return 'ru';
-    if (/[\u0600-\u06ff]/.test(text)) return 'ar';
-    if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN';
-    return 'en';
+  function setLive(kind){
+    live.className = 'live' + (kind && kind !== 'idle' ? ' ' + kind : '');
   }
-
-  function showErr(msg){
-    errMsg.textContent = msg;
-    err.classList.add('show');
-  }
+  function showErr(msg){ errMsg.textContent = msg; err.classList.add('show'); }
   function hideErr(){ err.classList.remove('show'); }
 
-  function splitSentences(text, max){
-    const parts = [];
-    let buf = '';
-    const segs = text.split(/(?<=[。！？.!?\n])/);
-    for (const s of segs){
-      if ((buf + s).length > max && buf) { parts.push(buf); buf = s; }
-      else buf += s;
-    }
-    if (buf) parts.push(buf);
-    return parts;
-  }
-
-  async function translateChunk(text, from, to){
+  async function translateChunk(text, from, to, signal){
     const url = 'https://api.mymemory.translated.net/get?q='
       + encodeURIComponent(text) + '&langpair=' + encodeURIComponent(from + '|' + to);
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: signal });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.responseStatus && String(data.responseStatus) !== '200') {
@@ -269,36 +573,86 @@
     return t;
   }
 
-  async function doTranslate(){
-    const text = src.value.trim();
-    if (!text) { out.innerHTML = '<span class="hint">请先粘贴要翻译的文本</span>'; return; }
+  // 缓存最近一次的「原文+语言对+接口原始译文」，只切风格时不重复请求网络
+  const cache = { key:'', raw:'', from:'', to:'' };
+  let seq = 0, timer = null, ctrl = null;
 
-    // 纯符号/代码直接回显
-    if (!/[a-zA-Z\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff]/.test(text)) {
-      out.textContent = text; return;
+  function renderStyled(rawText, to, style){
+    const styled = applyStyle(rawText, to, style);
+    out.textContent = styled;
+    out.title = style === 'neutral' ? '' : '已按「' + STYLE_NAMES[style] + '」语域润色';
+  }
+
+  function scheduleTranslate(delay){
+    if (!autoOn.checked) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => runTranslate(), delay == null ? 700 : delay);
+  }
+
+  async function runTranslate(opts){
+    opts = opts || {};
+    clearTimeout(timer);
+    const raw = src.value.trim();
+    if (!raw) {
+      out.innerHTML = '<span class="hint">粘贴或输入文本，自动开始翻译</span>';
+      setLive('idle'); hideErr();
+      cache.key = cache.raw = '';
+      return;
     }
+    if (!isMeaningfulText(raw)) { out.textContent = raw; setLive('done'); return; }
 
-    const from = detectLang(text);
+    const from = detectLang(raw);
     const to = target.value;
+    const style = styleSel.value;
     if (from === to) {
       out.innerHTML = '<span class="hint">源语言与目标语言相同（' + LANG_NAMES[to] + '），无需翻译</span>';
+      setLive('idle'); return;
+    }
+
+    const key = raw + '\u0001' + from + '\u0001' + to;
+    if (!opts.force && cache.key === key && cache.raw) {
+      renderStyled(cache.raw, to, style);
+      setLive('done'); hideErr();
       return;
     }
 
-    hideErr();
-    out.innerHTML = '<span class="hint">翻译中…</span>';
+    const mySeq = ++seq;
+    if (ctrl) ctrl.abort();
+    ctrl = new AbortController();
+    hideErr(); setLive('busy');
+
+    const slow = setTimeout(() => {
+      if (mySeq === seq) out.innerHTML = '<span class="hint">翻译中…</span>';
+    }, 260);
+
     try {
       // MyMemory 单次请求上限约 500 字节；中文/日文每字 3 字节，需切得更短
-      const isCJK = /[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/.test(text);
-      const chunks = splitSentences(text, isCJK ? 150 : 400);
-      const results = [];
-      for (const c of chunks) results.push(await translateChunk(c, from, to));
-      out.textContent = results.join('');
+      const isCJK = /[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/.test(raw);
+      const chunks = splitSentences(raw, isCJK ? 150 : 400);
+      const parts = [];
+      for (const c of chunks) {
+        if (mySeq !== seq) return;          // 输入已变化，放弃这次结果
+        parts.push(await translateChunk(c, from, to, ctrl.signal));
+      }
+      if (mySeq !== seq) return;
+      cache.key = key; cache.raw = parts.join(''); cache.from = from; cache.to = to;
+      renderStyled(cache.raw, to, style);
+      setLive('done');
     } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      if (mySeq !== seq) return;
       out.innerHTML = '<span class="hint">—</span>';
-      showErr('翻译失败：' + e.message);
+      showErr('翻译失败：' + (e && e.message ? e.message : e));
+      setLive('error');
+    } finally {
+      clearTimeout(slow);
     }
   }
+
+  src.addEventListener('input', () => scheduleTranslate(700));
+  src.addEventListener('paste', () => scheduleTranslate(120));
+  target.addEventListener('change', () => runTranslate({ force: true }));
+  styleSel.addEventListener('change', () => runTranslate());
 
   document.getElementById('btnTranslate').addEventListener('click', async () => {
     try {
@@ -309,16 +663,18 @@
       ]);
       if (t) src.value = t;
     } catch (_) { /* 浏览器不允许读剪贴板时忽略 */ }
-    doTranslate();
+    runTranslate({ force: true });
   });
 
-  document.getElementById('btnRetry').addEventListener('click', doTranslate);
+  document.getElementById('btnRetry').addEventListener('click', () => runTranslate({ force: true }));
   document.getElementById('btnClear').addEventListener('click', () => {
-    src.value = ''; out.innerHTML = '<span class="hint">译文会显示在这里</span>'; hideErr();
+    src.value = ''; out.innerHTML = '<span class="hint">译文会显示在这里</span>';
+    hideErr(); setLive('idle');
+    cache.key = cache.raw = '';
   });
 
   src.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); doTranslate(); }
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); runTranslate({ force: true }); }
   });
   window.addEventListener('keydown', e => {
     if (e.key === 'Escape') settings.classList.remove('show');
@@ -340,11 +696,12 @@
         width: Math.max(380, card.offsetWidth),
         height: Math.max(280, card.offsetHeight)
       });
-      // 把样式与主题一并复制过去，保证外观一致
+      // 把样式与主题一并复制过去，保证外观一致（含自定义渐变的行内变量）
       document.querySelectorAll('style, link[rel="stylesheet"]').forEach(n => {
         w.document.head.appendChild(n.cloneNode(true));
       });
       w.document.documentElement.style.cssText = document.documentElement.style.cssText;
+      w.document.documentElement.dataset.theme = document.documentElement.dataset.theme || '';
       w.document.body.dataset.theme = document.body.dataset.theme || 'light';
       w.document.title = '翻译卡片 · 悬浮';
       w.document.body.classList.add('pip-body');
@@ -364,8 +721,7 @@
   }
   btnFloat.addEventListener('click', toggleFloat);
 
-  // 粘贴后自动翻译
-  src.addEventListener('paste', () => setTimeout(doTranslate, 60));
+  setLive('idle');
 })();
 </script>
 </body>
